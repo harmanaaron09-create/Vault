@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAULT</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+        :root { --green: #00ffcc; --red: #ff3b30; --bg: #000; --card-bg: #080808; --border: #1a1a1a; --dim: #222; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--green); font-family: 'Share Tech Mono', monospace; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        body::after { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,204,0.012) 2px, rgba(0,255,204,0.012) 4px); pointer-events: none; z-index: 999; }
+       .card { border: 1px solid var(--green); background: var(--card-bg); padding: 32px 28px; width: 320px; text-align: center; position: relative; box-shadow: 0 0 40px rgba(0,255,204,0.07), inset 0 0 40px rgba(0,255,204,0.02); animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+       .card::before { content: ''; position: absolute; top: -1px; left: 10%; width: 80%; height: 1px; background: linear-gradient(90deg, transparent, var(--green), transparent); }
+       .logo { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.3rem; letter-spacing: 6px; color: var(--green); margin-bottom: 24px; text-shadow: 0 0 20px rgba(0,255,204,0.4); }
+       .logo span { color: #333; }
+        input { background: #0a0a0a; color: var(--green); border: 1px solid #2a2a2a; padding: 12px 14px; width: 100%; margin-bottom: 10px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; letter-spacing: 1px; outline: none; transition: border-color 0.2s; }
+        input:focus { border-color: var(--green); }
+        input::placeholder { color: #222; }
+       .btn { background: transparent; color: var(--green); border: 1px solid var(--green); padding: 12px; width: 100%; font-family: 'Orbitron', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 3px; cursor: pointer; margin-top: 8px; transition: background 0.2s, color 0.2s, box-shadow 0.2s; }
+       .btn:hover { background: var(--green); color: #000; box-shadow: 0 0 20px rgba(0,255,204,0.3); }
+       .btn:active { opacity: 0.7; }
+       .btn-danger { border-color: var(--red); color: var(--red); margin-top: 10px; }
+       .btn-danger:hover { background: var(--red); color: #000; }
+       .hidden { display: none!important; }
+       .pin-label { font-size: 0.6rem; letter-spacing: 4px; color: #444; margin-bottom: 14px; }
+       .pin-display { font-family: 'Orbitron', sans-serif; font-size: 3.4rem; font-weight: 900; letter-spacing: 12px; color: var(--green); text-shadow: 0 0 30px rgba(0,255,204,0.5); margin-bottom: 24px; padding: 18px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+       .phases { display: flex; justify-content: center; gap: 8px; margin-bottom: 6px; }
+       .phase-dot { width: 28px; height: 3px; background: var(--dim); transition: background 0.3s; }
+       .phase-dot.active { background: var(--green); box-shadow: 0 0 8px var(--green); }
+       .phase-label { font-size: 0.58rem; letter-spacing: 3px; color: #333; margin-bottom: 20px; }
+       .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+       .key { padding: 20px 0; border: 1px solid #1a1a1a; background: #0a0a0a; cursor: default; transition: all 0.12s; }
+       .key.highlight { border-color: var(--green); background: rgba(0,255,204,0.09); animation: pulse 0.7s ease-in-out infinite alternate; }
+        @keyframes pulse { from { box-shadow: 0 0 8px rgba(0,255,204,0.15); } to { box-shadow: 0 0 26px rgba(0,255,204,0.6); } }
+        @keyframes pulse-red { from { box-shadow: 0 0 8px rgba(255,59,48,0.15); } to { box-shadow: 0 0 26px rgba(255,59,48,0.6); } }
+       .key-zero { grid-column: 2; }
+       .key-del { width: 100%; padding: 14px 0; border: 1px solid #1a1a1a; background: #0a0a0a; color: #2a2a2a; font-family: 'Orbitron', sans-serif; font-size: 0.65rem; letter-spacing: 3px; cursor: default; transition: all 0.12s; display: block; text-align: center; margin-bottom: 16px; }
+       .key-del.highlight-del { border-color: var(--red); color: var(--red); background: rgba(255,59,48,0.07); animation: pulse-red 0.7s ease-in-out infinite alternate; }
+       .error-msg { color: var(--red); font-size: 0.65rem; letter-spacing: 1px; margin-top: 8px; min-height: 16px; }
+    </style>
+</head>
+<body>
+    <div id="auth-gate" class="card">
+        <div class="logo">VAULT<span>_</span></div>
+        <input type="email" id="email" placeholder="EMAIL" autocomplete="email">
+        <input type="password" id="pw" placeholder="PASSWORD" autocomplete="current-password">
+        <button class="btn" onclick="handleAuth()">UNLOCK</button>
+        <div class="error-msg" id="auth-error"></div>
+    </div>
+
+    <div id="app-container" class="card hidden">
+        <div id="display-view" class="hidden">
+            <div class="logo">VAULT<span>_</span></div>
+            <div class="pin-label">SCREEN TIME PIN</div>
+            <div class="pin-display" id="stored-pin-val">----</div>
+            <button class="btn" onclick="startScramble()">GENERATE NEW PIN</button>
+            <button class="btn btn-danger" onclick="doLogout()">SIGN OUT</button>
+        </div>
+
+        <div id="scramble-view" class="hidden">
+            <div class="logo">VAULT<span>_</span></div>
+            <div class="phases">
+                <div class="phase-dot active" id="dot-1"></div>
+                <div class="phase-dot" id="dot-2"></div>
+                <div class="phase-dot" id="dot-3"></div>
+            </div>
+            <div class="phase-label" id="phase-label">PHASE 1 — ENTRY</div>
+            <div class="keypad">
+                <div class="key" id="k1"></div>
+                <div class="key" id="k2"></div>
+                <div class="key" id="k3"></div>
+                <div class="key" id="k4"></div>
+                <div class="key" id="k5"></div>
+                <div class="key" id="k6"></div>
+                <div class="key" id="k7"></div>
+                <div class="key" id="k8"></div>
+                <div class="key" id="k9"></div>
+                <div class="key key-zero" id="k0"></div>
+            </div>
+            <div class="key-del" id="kdel">DELETE</div>
+            <button class="btn" onclick="nextStep()">NEXT</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEkrxbgNeezTdRjQSz_tcChEQMpsTa8aY",
+            authDomain: "lockbox-a98b0.firebaseapp.com",
+            projectId: "lockbox-a98b0",
+            storageBucket: "lockbox-a98b0.firebasestorage.app",
+            messagingSenderId: "484816205664",
+            appId: "1:484816205664:web:3f82f72c907c23714cd005"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let secretPin = "", masterSteps = [], index = 0, p1Len = 0, p2Len = 0;
+
+        async function handleAuth() {
+            const e = document.getElementById('email').value.trim();
+            const p = document.getElementById('pw').value;
+            const errEl = document.getElementById('auth-error');
+            errEl.textContent = '';
+            if (!e ||!p) { errEl.textContent = 'ENTER EMAIL AND PASSWORD'; return; }
+            try {
+                await auth.signInWithEmailAndPassword(e, p);
+            } catch (err) {
+                if (err.code === 'auth/user-not-found') {
+                    try { await auth.createUserWithEmailAndPassword(e, p); }
+                    catch (ce) { errEl.textContent = ce.message.toUpperCase(); }
+                } else { errEl.textContent = 'INVALID CREDENTIALS'; }
+            }
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById('auth-gate').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                checkDb();
+            } else {
+                document.getElementById('auth-gate').classList.remove('hidden');
+                document.getElementById('app-container').classList.add('hidden');
+            }
+        });
+
+        async function checkDb() {
+            const doc = await db.collection("users").doc(auth.currentUser.uid).get();
+            if (doc.exists) { showPIN(doc.data().pin); } else { startScramble(); }
+        }
+
+        function doLogout() { auth.signOut(); }
+
+        function showPIN(pin) {
+            document.getElementById('scramble-view').classList.add('hidden');
+            document.getElementById('display-view').classList.remove('hidden');
+            document.getElementById('stored-pin-val').textContent = pin;
+        }
+
+        function rnd(n) { return Math.floor(Math.random() * n); }
+        function rndDigit() { return String(rnd(10)); }
+
+        function generatePath(target) {
+            const path = [];
+            const shadow = [];
+
+            function enter(d) { path.push({ type: 'enter', digit: d }); shadow.push(d); }
+            function del() { path.push({ type: 'delete' }); shadow.pop(); }
+
+            // Pre-noise: chaotic random entry before any correct digit, can go to 0
+            const preSteps = 3 + rnd(4);
+            for (let s = 0; s < preSteps; s++) {
+                if (shadow.length === 0 || (shadow.length < 3 && Math.random() < 0.6)) {
+                    enter(rndDigit());
+                } else {
+                    del();
+                }
+            }
+            while (shadow.length > 0) del(); // clear to blank
+
+            // Place first 3 correct digits with noise woven in
+            // Critical rule: noise never deletes below i (the count of correct digits placed so far)
+            for (let i = 0; i < 3; i++) {
+                // Noise at current level — can add random digits above i, delete them, but never below i
+                const noiseCount = rnd(3);
+                for (let n = 0; n < noiseCount; n++) {
+                    if (shadow.length < 3 && Math.random() < 0.5) {
+                        enter(rndDigit());
+                    } else if (shadow.length > i) { // only delete above i-level floor
+                        del();
+                    }
+                }
+                // Reset back to exactly i digits before placing correct one
+                while (shadow.length > i) del();
+
+                // Place correct digit
+                enter(target[i]);
+                // shadow is now target[0..i]
+
+                // Optionally add 1-2 wrong digits after, then delete back to i+1
+                if (Math.random() < 0.55 && shadow.length < 3) {
+                    enter(rndDigit());
+                    if (Math.random() < 0.4 && shadow.length < 3) enter(rndDigit());
+                    while (shadow.length > i + 1) del();
+                }
+            }
+            // shadow is exactly target[0..2]
+
+            // 4th digit — always correct, iPhone auto-submits here
+            enter(target[3]);
+            return path;
+        }
+
+        function startScramble() {
+            document.getElementById('display-view').classList.add('hidden');
+            document.getElementById('scramble-view').classList.remove('hidden');
+            secretPin = String(1000 + rnd(9000));
+
+            // Generate until 45-75 total steps for 3 phases
+            let p1, p2, p3;
+            do {
+                p1 = generatePath(secretPin);
+                p2 = generatePath(secretPin);
+                p3 = generatePath(secretPin);
+            } while (p1.length + p2.length + p3.length < 45 || p1.length + p2.length + p3.length > 75);
+
+            p1Len = p1.length;
+            p2Len = p2.length;
+            masterSteps = [...p1,...p2,...p3];
+            index = 0;
+            updateUI();
+        }
+
+        function clearHighlights() {
+            ['1','2','3','4','5','6','7','8','9','0'].forEach(d => {
+                const el = document.getElementById('k' + d);
+                if (el) el.className = 'key' + (d === '0'? ' key-zero' : '');
+            });
+            document.getElementById('kdel').className = 'key-del';
+        }
+
+        function updateUI() {
+            const step = masterSteps[index];
+            let phase = 1;
+            if (index >= p1Len + p2Len) phase = 3;
+            else if (index >= p1Len) phase = 2;
+
+            document.getElementById('dot-1').classList.toggle('active', phase === 1);
+            document.getElementById('dot-2').classList.toggle('active', phase === 2);
+            document.getElementById('dot-3').classList.toggle('active', phase === 3);
+
+            const labels = ['PHASE 1 — ENTRY', 'PHASE 2 — CONFIRM', 'PHASE 3 — VERIFY'];
+            document.getElementById('phase-label').textContent = labels[phase - 1];
+
+            clearHighlights();
+            if (step.type === 'delete') {
+                document.getElementById('kdel').classList.add('highlight-del');
+            } else {
+                document.getElementById('k' + step.digit).classList.add('highlight');
+            }
+        }
+
+        async function nextStep() {
+            index++;
+            if (index < masterSteps.length) {
+                updateUI();
+            } else {
+                clearHighlights();
+                await db.collection("users").doc(auth.currentUser.uid).set({ pin: secretPin });
+                await auth.signOut();
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
