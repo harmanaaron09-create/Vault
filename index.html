@@ -129,10 +129,15 @@
             }
         });
 
-        async function checkDb() {
-            const doc = await db.collection("users").doc(auth.currentUser.uid).get();
-            if (doc.exists) { showPIN(doc.data().pin); } else { startScramble(); }
-        }
+    async function checkDb() {
+    try {
+        const doc = await db.collection("users").doc(auth.currentUser.uid).get();
+        if (doc.exists) { showPIN(doc.data().pin); } else { startScramble(); }
+    } catch (err) {
+        startScramble();
+    }
+}
+
 
         function doLogout() { auth.signOut(); }
 
